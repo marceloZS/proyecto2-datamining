@@ -1,0 +1,27 @@
+# Parte II — Análisis de grafos: ranking, comunidades e influencia
+
+Sobre las dos estructuras construidas en la Parte I aplicamos algoritmos de análisis de enlaces y de comunidades, todos implementados desde cero (iteración de potencias y optimización de modularidad), para responder una pregunta de fondo: **¿qué significa ser influyente en Boise?** La respuesta resultó ser múltiple — hay al menos tres nociones de influencia, y conviene distinguirlas.
+
+## PageRank sobre la red de amistad
+
+PageRank (factor de amortiguación 0.85) convergió en **43 iteraciones** sobre los 11,233 usuarios de la LCC. El resultado mide **centralidad social**, y los datos lo confirman de forma contundente: la correlación entre PageRank y el número de amigos en Boise es **0.989**, mientras que con los *fans* (popularidad) cae a **0.332** y con el conteo de reseñas (actividad) a apenas **0.171**. Es decir, ser influyente en la red de amistad depende de con quién estás conectado, no de cuánta gente te sigue ni de cuánto reseñas.
+
+El caso más ilustrativo es el contraste entre **George** (puesto #12, con solo 10 reseñas y 2 fans, pero 214 amigos) y **Trish** (puesto #14, con 992 reseñas y 1,079 fans, pero solo 135 amigos): George —casi invisible en términos de popularidad— es *más* central socialmente que Trish, una de las usuarias con más fans de la ciudad. La conclusión para el reporte es nítida: **influencia social, popularidad y actividad son tres cosas distintas**, y PageRank captura la primera. Encabeza el ranking **Ophelia** (PageRank 0.0067, 553 amigos), un caso raro de usuaria alta en las tres dimensiones a la vez.
+
+## HITS sobre el grafo bipartito
+
+HITS convergió en **32 iteraciones**, asignando puntajes de *hub* a los 43,934 usuarios (reseñadores) y de *authority* a los 2,941 negocios. Las **authorities** son los negocios más relevantes de la ciudad, y la lista es elocuente: **Fork** encabeza con autoridad 0.536 (1,810 reseñas), seguido de Barbacoa Grill, Bittercreek Alehouse y Goldy's Breakfast Bistro — todos restaurantes y bares de 4.0-4.5★. La autoridad correlaciona fuertemente con el volumen de reseñas (**0.954**), lo cual es esperado: una buena authority recibe mucha atención. Pero HITS refina ese ranking según la *calidad* de los hubs que reseñan; por eso reordena casos como **Big City Coffee** (606 reseñas), que supera a **Boise Fry Company** (704 reseñas) por ser reseñado por mejores hubs.
+
+Los **hubs** son los reseñadores de peso, y aquí aparece el contraste con PageRank: surgen usuarios como **Laura**, un hub importante con apenas 15 amigos — influyente *como reseñadora* pero periférico en lo social, el espejo exacto de George. Un detalle metodológico: el `review_count` almacenado es global (todo Yelp), mientras que el hub mide la actividad reseñadora *en Boise*, por lo que es una medida más fiel del comportamiento local.
+
+## Detección de comunidades con Louvain
+
+Implementamos Louvain a mano (movimiento local + agregación por niveles). Sobre la LCC encontró **106 comunidades con una modularidad Q = 0.5703**, valor alto que confirma una estructura de "círculos de amigos" bien definida y no una masa homogénea. Las cinco comunidades más grandes concentran ~68% de la red. Lo revelador es cómo se reparten los usuarios influyentes: la **comunidad 3** (1,485 nodos) está anclada por Ophelia, Michelle, Amie, StaciLei y Joseph —los puestos #0 a #5 de PageRank, es decir, el círculo socialmente más central—, mientras que la **comunidad 0** (2,342 nodos) la encabezan Greg, Michele, Jeffrey, Andrew y Katy —varios de los reseñadores más prolíficos—. Los influyentes no forman una sola camarilla: hay un círculo "social" y otro de "power-reviewers", separados. Las comunidades también difieren en cohesión: la comunidad 0 es **insular** (6,351 aristas internas frente a 2,397 externas), mientras la comunidad 1 es un **puente** (5,861 internas frente a 4,437 externas).
+
+## Visualización de la estructura de comunidades
+
+Para visualizar la red sin librerías de grafos, implementamos un layout *force-directed* (Fruchterman-Reingold) a mano y muestreamos un subgrafo de 300 nodos de las seis comunidades más grandes. El muestreo inicial aleatorio fracasó —al tomar 50 nodos de comunidades grandes y dispersas casi no sobrevivían aristas, y los nodos aislados se ordenaban en un anillo artificial—; lo corregimos con un **muestreo por BFS desde el líder** de cada comunidad, que conserva un núcleo conexo (300 nodos, 692 aristas). El resultado muestra las seis comunidades como manchas de color diferenciadas, cada una anclada por su líder (dimensionado por PageRank), con amistades-puente cruzando entre ellas.
+
+## Comparativa: tres lentes de influencia
+
+Finalmente cuantificamos la relación entre la influencia social (PageRank) y la reseñadora (hubs). La correlación entre ambas es **0.336** —positiva pero moderada— y el **solapamiento de sus top-15 es de solo 4 usuarios**: cerca del 73% de cada lista es gente distinta. Esto prueba numéricamente que cada grafo mide una influencia propia. Los cuatro usuarios que aparecen en ambos tops son los verdaderos **pilares** de Boise: Ophelia (#1 en ambos), Amie (#4/#3), Michele (#8/#5) y Heather (#11/#2, notable por tener gran peso reseñador con apenas 55 fans). En conjunto, PageRank, hubs y authorities ofrecen tres lentes complementarios —centralidad social, influencia como reseñador e importancia de los negocios— cuya intersección revela a los actores que sostienen la comunidad desde todos los ángulos.

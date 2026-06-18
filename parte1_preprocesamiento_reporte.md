@@ -1,0 +1,23 @@
+# Parte I — Preprocesamiento, limpieza y análisis exploratorio
+
+## Selección del conjunto de datos y del mercado
+
+Trabajamos sobre el **Yelp Open Dataset** (150,346 negocios y 6,990,280 reseñas en cinco archivos JSON: negocios, reseñas, usuarios, check-ins y tips). Como el proyecto exige implementar los algoritmos sin librerías especializadas —es decir, recorrer grafos y matrices con bucles de Python puro—, procesar los casi 7 millones de reseñas completas era inviable. Por eso acotamos el análisis a **una sola ciudad**, decisión que reduce el costo computacional sin sacrificar la riqueza estructural.
+
+La elección del mercado fue deliberada. Filtramos las ciudades con un volumen "rico pero tratable" (entre 50,000 y 300,000 reseñas) y evaluamos un criterio adicional clave para la Parte II: la **viabilidad de la red social**. Un *script* de chequeo (`friendship_check.py`) recorrió en streaming los tres archivos relevantes y midió la red de amistad inducida de cada candidata. **Boise (Idaho)** resultó óptima: con 2,941 negocios y ~105,000 reseñas es lo bastante grande para ser interesante y lo bastante chica para que los algoritmos en Python puro corran en segundos —Santa Bárbara, la alternativa, tenía ~2.6× más reseñas, lo que habría triplicado los tiempos—. El veredicto de viabilidad fue positivo: **43,934 usuarios, 37,264 aristas de amistad y una componente conexa mayor (LCC) de 11,233 usuarios (25.6%)**, con grado promedio 1.70 — suficiente para sostener un análisis de redes.
+
+## Preprocesamiento: del dataset global al subconjunto de Boise
+
+El módulo `preprocessing.py` transforma los cinco JSON crudos en un subconjunto persistido de Boise en formato **Parquet**, leyendo cada archivo en *streaming* (línea por línea) para no cargar gigabytes en memoria. El diseño es **idempotente**: si los artefactos ya existen, se cargan desde caché en lugar de re-procesar los archivos crudos, lo que permite reanudar el trabajo sin repetir los ~2 minutos de barrido de `review.json`. Además, al recorrer los usuarios se calcula y almacena la red de amistad inducida (amistades *dentro* de Boise). El subconjunto resultante: **2,941 negocios, 105,426 reseñas, 43,934 usuarios, 2,474 negocios con check-ins y 11,436 tips**.
+
+## Limpieza
+
+El módulo `cleaning.py` produce un reporte auditable de cada operación. Los hallazgos relevantes: 1,366 negocios **sin `price_range`** —un faltante *estructural*, no un error, ya que la mayoría de negocios no gastronómicos no declaran rango de precio—, 264 sin atributos y 3 sin categoría. Las categorías se parsearon a lista y los atributos anidados (estilo diccionario de Python) a `dict` con `ast.literal_eval`. En las reseñas, se **colapsaron 3,471 pares (usuario, negocio) repetidos** quedándonos con la reseña más reciente de cada par, lo que dejó **101,955 reseñas limpias**. Se derivaron señales útiles (estatus *elite* — 2,589 usuarios lo son —, número de años elite, días de apertura) y se **marcaron** —sin eliminar— los outliers de `review_count` (30 negocios y 439 usuarios por encima del percentil 99), preservando la cola larga propia del dominio.
+
+## Análisis exploratorio (EDA)
+
+El EDA (`eda.py`, ocho figuras) confirma que Boise se comporta como un mercado Yelp típico. El **rating promedio es 3.80** con la clásica forma en J (sesgo hacia 4-5 estrellas). Tanto las reseñas por usuario como las reseñas por negocio siguen **leyes de potencia** (visibles como rectas en escala log-log): unos pocos usuarios y negocios hiperactivos frente a una larga cola de casuales. La longitud mediana de reseña es de 369 caracteres. El eje temporal muestra un pico de actividad en 2018-2019 y la **caída por la pandemia en 2020**. La dispersión geográfica permitió detectar algunos *geo-outliers* (negocios mal geolocalizados fuera de Boise). Y un dato central para la Parte II: el grado de amistad también es power-law, y **el 71.6% de los usuarios no tiene ningún amigo dentro de Boise** — el 28% restante forma el núcleo social que analizaremos después.
+
+## Grafos iniciales
+
+Finalmente, `graphs.py` construye las dos estructuras que alimentan la Parte II. El **grafo bipartito usuario-negocio** (43,934 usuarios, 2,941 negocios, 101,955 aristas de reseña) tiene densidad 7.89×10⁻⁴. El **grafo de amistad usuario-usuario** (43,934 nodos, 37,264 aristas, densidad 3.86×10⁻⁵) se fragmenta en 32,010 componentes, dominadas por una **componente conexa mayor de 11,233 nodos (25.6%)** con un **diámetro aproximado de 18** (calculado por doble BFS). Esa LCC —un mundo social disperso pero navegable— es el escenario sobre el que correrán PageRank y la detección de comunidades.

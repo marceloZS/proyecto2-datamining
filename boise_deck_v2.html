@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿Quién manda en Boise?</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+:root{
+  --ink:#15110e; --ink-2:#1d1813; --ink-3:#272019;
+  --paper:#ece2d0; --paper-dim:#b7ab96; --muted:#8a7c67;
+  --amber:#f0a93c; --coral:#e6604a; --sage:#9bb083;
+  --line:rgba(236,226,208,.14);
+  --serif:'Fraunces',Georgia,serif;
+  --sans:'Space Grotesk',system-ui,sans-serif;
+  --mono:'Space Mono','JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--ink);color:var(--paper);
+  font-family:var(--sans);-webkit-font-smoothing:antialiased}
+body{position:fixed;inset:0}
+#sky{position:fixed;inset:0;z-index:0;opacity:.5}
+
+.deck{position:fixed;inset:0;z-index:1}
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+  padding:clamp(28px,5.5vw,90px);padding-bottom:clamp(56px,9vh,96px);
+  opacity:0;visibility:hidden;transform:scale(.985);pointer-events:none;
+  transition:opacity .6s ease, transform .8s cubic-bezier(.2,.7,.2,1);overflow:hidden}
+.scene.is-active{opacity:1;visibility:visible;transform:none;pointer-events:auto}
+.scene.is-past{transform:scale(1.02) translateY(-1.5%)}
+
+.eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--amber);display:flex;align-items:center;gap:.8em;margin-bottom:1.3rem}
+.eyebrow::before{content:"";width:26px;height:1px;background:var(--amber);opacity:.8}
+
+h1.title{font-family:var(--serif);font-weight:600;line-height:.95;letter-spacing:-.02em;
+  font-size:clamp(2.8rem,9vw,7.2rem);max-width:16ch}
+h2{font-family:var(--serif);font-weight:500;line-height:1.02;letter-spacing:-.015em;
+  font-size:clamp(1.9rem,5vw,3.9rem);max-width:18ch}
+.lead{font-size:clamp(1rem,1.6vw,1.3rem);color:var(--paper-dim);max-width:48ch;
+  line-height:1.5;margin-top:1.2rem}
+.kicker{font-family:var(--mono);color:var(--muted);font-size:.82rem;letter-spacing:.05em;margin-top:1rem}
+em.hl{font-style:normal;color:var(--amber)} em.hl.c{color:var(--coral)} em.hl.s{color:var(--sage)}
+
+.stat-num{font-family:var(--mono);font-weight:700;line-height:1;
+  font-size:clamp(2.4rem,7vw,5.4rem);color:var(--paper)}
+.stat-num small{font-size:.34em;color:var(--muted);font-weight:400}
+
+.row{display:flex;gap:clamp(20px,4vw,60px);align-items:center;flex-wrap:wrap}
+.col{flex:1 1 0;min-width:0}
+.grid-stats{display:flex;gap:clamp(18px,4vw,52px);flex-wrap:wrap;margin-top:1.6rem}
+.gs b{display:block;font-family:var(--mono);font-size:clamp(1.7rem,3.8vw,3rem);color:var(--paper)}
+.gs span{font-size:.82rem;color:var(--muted);letter-spacing:.04em}
+
+/* ficha en FLUJO (ya no flota en la esquina) */
+.ficha{margin-top:clamp(1.3rem,3.4vh,2.2rem);max-width:64ch;border-left:2px solid var(--coral);
+  padding-left:1rem;font-family:var(--mono);font-size:.74rem;color:var(--paper-dim);line-height:1.6}
+.ficha .t{color:var(--coral);letter-spacing:.16em;text-transform:uppercase;font-size:.64rem;display:block;margin-bottom:.35rem}
+.row + .ficha{width:100%}
+
+[data-step]{opacity:0;transform:translateY(15px);
+  transition:opacity .55s ease,transform .65s cubic-bezier(.2,.7,.2,1);will-change:opacity,transform}
+[data-step].on{opacity:1;transform:none}
+
+/* funnel */
+.funnel{display:flex;flex-direction:column;gap:13px;width:min(560px,46vw)}
+.frow{display:flex;align-items:center;gap:16px}
+.fbar{height:36px;border-radius:4px;background:var(--ink-3);position:relative;overflow:hidden;flex:1}
+.fbar i{position:absolute;inset:0;width:0;transition:width 1.05s cubic-bezier(.2,.7,.2,1);
+  background:linear-gradient(90deg,var(--amber),var(--coral))}
+.frow .lab{font-family:var(--mono);font-size:.78rem;min-width:13ch;color:var(--paper-dim)}
+.frow .val{font-family:var(--mono);font-size:.92rem;color:var(--paper);min-width:8ch;text-align:right}
+
+.viz{width:100%;height:min(54vh,500px)}
+.viz text{font-family:var(--mono)}
+
+/* rank list */
+.ranklist{display:flex;flex-direction:column;gap:11px;width:min(540px,46vw)}
+.rk{display:flex;align-items:center;gap:14px}
+.rk .nm{font-family:var(--mono);font-size:.86rem;min-width:9ch;color:var(--paper)}
+.rk .rb{height:22px;border-radius:4px;background:linear-gradient(90deg,var(--amber),var(--coral));width:0;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.rk .rv{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+
+/* persona chips */
+.chips{display:flex;gap:20px;flex-wrap:wrap;margin-top:1.6rem}
+.chip{background:var(--ink-2);border:1px solid var(--line);border-radius:14px;padding:20px 22px;max-width:30ch}
+.chip h4{font-family:var(--serif);font-weight:600;font-size:1.3rem;margin-bottom:.3rem}
+.chip.soc h4{color:var(--amber)} .chip.rev h4{color:var(--coral)}
+.chip p{font-size:.9rem;color:var(--paper-dim);line-height:1.45}
+.chip .mn{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-top:.7rem;display:block}
+
+/* lenses */
+.lenses{display:flex;gap:18px;margin-top:1.6rem;flex-wrap:wrap}
+.lens{flex:1 1 0;min-width:170px;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;padding:20px}
+.lens .d{width:14px;height:14px;border-radius:50%;margin-bottom:.7rem}
+.lens h4{font-family:var(--serif);font-size:1.2rem;margin-bottom:.3rem}
+.lens p{font-size:.84rem;color:var(--paper-dim);line-height:1.4}
+.pill{display:inline-block;margin-top:1.4rem;font-family:var(--mono);font-size:.8rem;color:var(--paper);
+  background:var(--ink-3);border:1px solid var(--line);padding:.55rem .9rem;border-radius:30px}
+.pill em{color:var(--amber);font-style:normal}
+
+/* segment cards */
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:13px;margin-top:1.3rem}
+.card{background:var(--ink-2);border:1px solid var(--line);border-radius:12px;padding:16px 15px;
+  min-height:212px;display:flex;flex-direction:column;gap:.45rem}
+.card .ico{font-size:1.45rem;line-height:1}
+.card h3{font-family:var(--serif);font-weight:600;font-size:1.12rem;line-height:1.05}
+.card .desc{font-size:.8rem;color:var(--paper-dim);line-height:1.42;flex:1}
+.card .met{font-family:var(--mono);font-size:.7rem;color:var(--amber);border-top:1px solid var(--line);padding-top:.5rem}
+.card.veteran{border-color:rgba(155,176,131,.45)}
+.card.veteran .met{color:var(--sage)}
+.card .tag{font-family:var(--mono);font-size:.58rem;letter-spacing:.08em;color:var(--sage)}
+
+/* takeaways */
+.takes{display:flex;flex-direction:column;gap:1rem;margin-top:1.3rem;max-width:40ch}
+.take{display:flex;gap:1rem;align-items:flex-start}
+.take .n{font-family:var(--mono);color:var(--amber);font-size:1.05rem;padding-top:.1rem}
+.take p{font-size:clamp(1rem,1.5vw,1.22rem);line-height:1.38}
+.badge{display:inline-flex;align-items:center;gap:.6rem;margin-top:1.7rem;font-family:var(--mono);
+  font-size:.76rem;letter-spacing:.1em;color:var(--ink);background:var(--sage);padding:.7rem 1.1rem;border-radius:40px}
+
+.legend{display:flex;gap:1.1rem;flex-wrap:wrap;margin-top:.9rem;font-family:var(--mono);font-size:.72rem;color:var(--paper-dim)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:.4rem;vertical-align:middle}
+
+.hud{position:fixed;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;gap:12px;
+  padding:12px clamp(18px,4vw,36px);pointer-events:none}
+.rail{display:flex;gap:4px;pointer-events:auto;flex-wrap:wrap}
+.rail button{width:18px;height:4px;border-radius:3px;border:0;background:var(--ink-3);cursor:pointer;padding:0;transition:background .3s,width .3s}
+.rail button.done{background:var(--muted)}
+.rail button.now{background:var(--amber);width:30px}
+.hud .meta{font-family:var(--mono);font-size:.68rem;color:var(--muted);margin-left:auto;white-space:nowrap}
+.hint{position:fixed;left:50%;bottom:44px;transform:translateX(-50%);z-index:3;font-family:var(--mono);
+  font-size:.7rem;color:var(--muted);letter-spacing:.08em;opacity:.9;transition:opacity .5s;pointer-events:none}
+.hint.gone{opacity:0}
+kbd{font-family:var(--mono);background:var(--ink-3);border:1px solid var(--line);border-radius:5px;padding:.12em .5em;color:var(--paper-dim);font-size:.9em}
+
+@media (max-width:820px){ .cards{grid-template-columns:1fr 1fr} }
+@media (prefers-reduced-motion:reduce){ *{transition-duration:.001s!important;animation-duration:.001s!important} #sky{display:none} }
+</style>
+</head>
+<body>
+<canvas id="sky"></canvas>
+<main class="deck" id="deck">
+
+  <!-- 1 -->
+  <section class="scene" data-name="Portada">
+    <div class="eyebrow">Yelp Open Dataset · Boise, Idaho</div>
+    <h1 class="title" data-step="0">¿Quién manda<br>en Boise?</h1>
+    <p class="kicker" data-step="1">Una historia contada con datos de Yelp · Minería de Datos</p>
+  </section>
+
+  <!-- 2 -->
+  <section class="scene" data-name="El punto de partida">
+    <div class="eyebrow">El punto de partida</div>
+    <div class="stat-num" data-step="0"><span class="count" data-target="6990280">0</span> <small>reseñas</small></div>
+    <p class="lead" data-step="1">Eso es lo que hay en todo Yelp. Demasiado para procesar a mano, así que decidimos meternos en una sola ciudad y ver, por dentro, quién y qué la mueve.</p>
+  </section>
+
+  <!-- 3 -->
+  <section class="scene" data-name="Elegir el terreno">
+    <div class="eyebrow">Elegir el terreno</div>
+    <div class="row">
+      <div class="col">
+        <h2 data-step="0">¿Por qué Boise?</h2>
+        <p class="lead" data-step="0">Buscábamos una ciudad con datos ricos pero que cupiera en algoritmos hechos a mano. Santa Bárbara tenía 2.6 veces más reseñas; Boise era el punto justo.</p>
+      </div>
+      <div class="col">
+        <div class="funnel">
+          <div class="frow" data-step="1"><span class="lab">Reseñas en Yelp</span><div class="fbar"><i style="--w:100%"></i></div><span class="val">6,990,280</span></div>
+          <div class="frow" data-step="2"><span class="lab">Ciudades candidatas</span><div class="fbar"><i style="--w:42%"></i></div><span class="val">11</span></div>
+          <div class="frow" data-step="3"><span class="lab">Boise · reseñas</span><div class="fbar"><i style="--w:16%"></i></div><span class="val">101,955</span></div>
+          <div class="frow" data-step="3"><span class="lab">Boise · negocios</span><div class="fbar"><i style="--w:10%"></i></div><span class="val">2,941</span></div>
+          <div class="frow" data-step="3"><span class="lab">Boise · usuarios</span><div class="fbar"><i style="--w:24%"></i></div><span class="val">43,934</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="ficha" data-step="3"><span class="t">Cómo</span>Leímos los 5 archivos JSON en streaming y guardamos un subconjunto en Parquet. Filtramos por volumen (entre 50 mil y 300 mil reseñas) y por tener una red social con vida.</div>
+  </section>
+
+  <!-- 4 -->
+  <section class="scene" data-name="Boise en limpio">
+    <div class="eyebrow">Lo que quedó sobre la mesa</div>
+    <h2 data-step="0">Boise, en limpio</h2>
+    <p class="lead" data-step="0">Tras quitar duplicados y normalizar todo, este es el Boise con el que trabajamos.</p>
+    <div class="grid-stats">
+      <div class="gs" data-step="1"><b>2,941</b><span>negocios</span></div>
+      <div class="gs" data-step="2"><b>101,955</b><span>reseñas</span></div>
+      <div class="gs" data-step="3"><b>43,934</b><span>usuarios</span></div>
+      <div class="gs" data-step="4"><b>11,436</b><span>tips</span></div>
+    </div>
+    <div class="ficha" data-step="4"><span class="t">Detalle</span>Juntamos 3,471 pares usuario-negocio repetidos en su reseña más reciente y marcamos (sin borrar) la cola de outliers. 1,366 negocios sin precio: un faltante normal —no todos declaran rango—, no un error.</div>
+  </section>
+
+  <!-- 5 -->
+  <section class="scene" data-name="Cómo califica la gente">
+    <div class="eyebrow">Cómo califica la gente</div>
+    <div class="row" style="align-items:flex-end">
+      <div class="col" style="max-width:32ch">
+        <h2 data-step="0">Casi todos<br>dan cinco… o uno.</h2>
+        <p class="lead" data-step="1">El promedio es 3.80, pero la nota más repetida no está en el medio: la gente o premia o castiga. Es el sesgo positivo típico de Yelp.</p>
+      </div>
+      <div class="col"><svg class="viz" id="svg-jshape" viewBox="0 0 560 380" preserveAspectRatio="xMidYMid meet" style="height:min(46vh,400px)"></svg></div>
+    </div>
+    <div class="ficha" data-step="1"><span class="t">Dato</span>Distribución en forma de J. Longitud mediana de una reseña: 369 caracteres.</div>
+  </section>
+
+  <!-- 6 -->
+  <section class="scene" data-name="La ley de los pocos">
+    <div class="eyebrow">La ley de los pocos</div>
+    <div class="row" style="align-items:center">
+      <div class="col" style="max-width:32ch">
+        <h2 data-step="0">Unos pocos<br>escriben casi todo.</h2>
+        <p class="lead" data-step="1">Las reseñas por persona —y por negocio— siguen una ley de potencias: un puñado de hiperactivos y una larguísima cola de gente que reseñó una vez y desapareció.</p>
+        <p class="lead" data-step="2">Guarda este dato: cuando hablemos de influencia, esos pocos volverán a aparecer.</p>
+      </div>
+      <div class="col"><svg class="viz" id="svg-power" viewBox="0 0 560 380" preserveAspectRatio="xMidYMid meet" style="height:min(46vh,400px)"></svg></div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="scene" data-name="Quién conoce a quién">
+    <div class="eyebrow">Quién conoce a quién</div>
+    <div class="row" style="align-items:stretch">
+      <div class="col" style="max-width:30ch">
+        <h2 data-step="0">La mayoría<br>está sola.</h2>
+        <p class="lead" data-step="1">El <em class="hl">71%</em> de los usuarios de Boise no tiene un solo amigo dentro de la ciudad.</p>
+        <p class="lead" data-step="2">Toda la acción social pasa en el resto.</p>
+      </div>
+      <div class="col"><svg class="viz" id="svg-fabric" viewBox="0 0 600 460" preserveAspectRatio="xMidYMid meet"></svg></div>
+    </div>
+    <div class="ficha" data-step="2"><span class="t">La red</span>43,934 nodos · 37,264 amistades · 32,010 pedazos sueltos. El más grande se lleva el 25.6%.</div>
+  </section>
+
+  <!-- 8 -->
+  <section class="scene" data-name="El núcleo">
+    <div class="eyebrow">El núcleo conectado</div>
+    <div class="row" style="align-items:stretch">
+      <div class="col"><svg class="viz" id="svg-core" viewBox="0 0 600 460" preserveAspectRatio="xMidYMid meet"></svg></div>
+      <div class="col" style="max-width:30ch">
+        <h2 data-step="0">Once mil<br>conectadas.</h2>
+        <p class="lead" data-step="1">Ese resto forma un mundo pequeño: <em class="hl">11,233</em> personas a las que separan, como mucho, <em class="hl">18</em> saltos de amistad.</p>
+        <p class="lead" data-step="2">Sobre este núcleo corrimos todo lo que viene.</p>
+      </div>
+    </div>
+    <div class="ficha" data-step="2"><span class="t">Cómo</span>Componente conexa mayor del grafo. Diámetro estimado con doble BFS, a mano.</div>
+  </section>
+
+  <!-- 9 -->
+  <section class="scene" data-name="Medir la influencia">
+    <div class="eyebrow">Medir la influencia</div>
+    <div class="row">
+      <div class="col" style="max-width:32ch">
+        <h2 data-step="0">¿Quién es el<br>centro de todo?</h2>
+        <p class="lead" data-step="1">Corrimos PageRank —el mismo algoritmo de Google, pero sobre amistades— para encontrar a las personas más centrales de la red.</p>
+        <p class="lead" data-step="5">Arriba está Ophelia, seguida de Greg y Michelle.</p>
+      </div>
+      <div class="col">
+        <div class="ranklist">
+          <div class="rk" data-step="1"><span class="nm">Ophelia</span><div class="rb" style="--w:100%"></div><span class="rv">.0067</span></div>
+          <div class="rk" data-step="2"><span class="nm">Greg</span><div class="rb" style="--w:91%"></div><span class="rv">.0061</span></div>
+          <div class="rk" data-step="3"><span class="nm">Michelle</span><div class="rb" style="--w:85%"></div><span class="rv">.0057</span></div>
+          <div class="rk" data-step="4"><span class="nm">Amie</span><div class="rb" style="--w:74%"></div><span class="rv">.0050</span></div>
+          <div class="rk" data-step="5"><span class="nm">StaciLei</span><div class="rb" style="--w:61%"></div><span class="rv">.0041</span></div>
+          <div class="rk" data-step="5"><span class="nm">Joseph</span><div class="rb" style="--w:54%"></div><span class="rv">.0036</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="ficha" data-step="5"><span class="t">Cómo</span>PageRank a mano, factor 0.85, 43 iteraciones sobre los 11,233 nodos del núcleo.</div>
+  </section>
+
+  <!-- 10 -->
+  <section class="scene" data-name="La sorpresa">
+    <div class="eyebrow">La sorpresa</div>
+    <div class="row" style="align-items:stretch">
+      <div class="col" style="max-width:32ch">
+        <h2 data-step="0">Tener influencia<br>no es tener fama.</h2>
+        <p class="lead" data-step="1"><em class="hl c">Trish</em> tiene 1,079 fans y casi mil reseñas. La celebridad.</p>
+        <p class="lead" data-step="2"><em class="hl">George</em> tiene 2 fans y 10 reseñas. Pero 214 amigos bien ubicados.</p>
+        <p class="lead" data-step="3" style="color:var(--paper);font-size:clamp(1.1rem,1.9vw,1.45rem)">Y en la red, <em class="hl">George pesa más que Trish.</em> Importa a quién conoces, no cuántos te siguen.</p>
+        <p class="lead" data-step="4"><em class="hl">Ophelia</em> es la excepción: la primera en todo.</p>
+      </div>
+      <div class="col"><svg class="viz" id="svg-scatter" viewBox="0 0 600 460" preserveAspectRatio="xMidYMid meet"></svg></div>
+    </div>
+    <div class="ficha" data-step="1"><span class="t">Números</span>PageRank vs amigos: 0.989. vs fans: 0.332. vs reseñas: 0.171. La centralidad va con los amigos, no con la fama.</div>
+  </section>
+
+  <!-- 11 -->
+  <section class="scene" data-name="Los reyes restaurantes">
+    <div class="eyebrow">¿Y los negocios, quién manda?</div>
+    <div class="row" style="align-items:flex-end">
+      <div class="col" style="max-width:30ch">
+        <h2 data-step="0">Los reyes<br>son restaurantes.</h2>
+        <p class="lead" data-step="3">Con HITS, los negocios más importantes de Boise son casi todos restaurantes y bares. <em class="hl c">Fork</em> reina. Pero no gana el que más reseñas tiene: gana el que reseñan los buenos críticos —por eso Big City Coffee supera a Boise Fry pese a tener menos reseñas—.</p>
+      </div>
+      <div class="col"><svg class="viz" id="svg-podium" viewBox="0 0 600 420" preserveAspectRatio="xMidYMid meet" style="height:min(50vh,420px)"></svg></div>
+    </div>
+    <div class="ficha" data-step="3"><span class="t">Cómo</span>HITS a mano, 32 iteraciones. La "autoridad" de un negocio va de la mano con sus reseñas (0.954), pero se afina por la calidad de quién lo reseña.</div>
+  </section>
+
+  <!-- 12 -->
+  <section class="scene" data-name="Críticos con peso">
+    <div class="eyebrow">Los que opinan con peso</div>
+    <h2 data-step="0">El otro lado<br>de la moneda.</h2>
+    <p class="lead" data-step="0" style="max-width:54ch">El mismo algoritmo nos da a los mejores "críticos". Y vuelve a sorprender: no son los famosos.</p>
+    <div class="chips">
+      <div class="chip soc" data-step="1"><h4>George</h4><p>Influyente en la red social, pero invisible como crítico.</p><span class="mn">214 amigos · 2 fans · 10 reseñas</span></div>
+      <div class="chip rev" data-step="2"><h4>Laura</h4><p>Un peso pesado opinando, sin casi presencia social. El espejo exacto de George.</p><span class="mn">15 amigos · 4 fans · top crítica</span></div>
+    </div>
+    <div class="ficha" data-step="2"><span class="t">Idea</span>Ser central entre amigos y ser un buen crítico son habilidades distintas. Casi nadie tiene las dos.</div>
+  </section>
+
+  <!-- 13 -->
+  <section class="scene" data-name="Las tribus">
+    <div class="eyebrow">Las tribus de Boise</div>
+    <div class="row" style="align-items:stretch">
+      <div class="col"><svg class="viz" id="svg-comm" viewBox="0 0 600 460" preserveAspectRatio="xMidYMid meet"></svg></div>
+      <div class="col" style="max-width:32ch">
+        <h2 data-step="0">La red se<br>parte en grupos.</h2>
+        <p class="lead" data-step="1">Encontramos <em class="hl">106 comunidades</em> bien marcadas: una estructura social fuerte, no una masa uniforme.</p>
+        <p class="lead" data-step="2">Y los influyentes no comparten mesa: hay un círculo <em class="hl">social</em> (el de Ophelia) y otro de <em class="hl c">reseñadores</em> (el de Jeffrey), cada uno por su lado.</p>
+      </div>
+    </div>
+    <div class="ficha" data-step="1"><span class="t">Cómo</span>Algoritmo de Louvain, hecho a mano. La calidad de la división (modularidad) es 0.57: alta.</div>
+  </section>
+
+  <!-- 14 -->
+  <section class="scene" data-name="Tres formas de mandar">
+    <div class="eyebrow">Tres formas de mandar</div>
+    <h2 data-step="0">No hay un solo<br>tipo de poder.</h2>
+    <div class="lenses">
+      <div class="lens" data-step="1"><span class="d" style="background:var(--amber)"></span><h4>Social</h4><p>Quién conecta a la gente — PageRank.</p></div>
+      <div class="lens" data-step="2"><span class="d" style="background:var(--coral)"></span><h4>Crítico</h4><p>Quién opina con peso — HITS (hubs).</p></div>
+      <div class="lens" data-step="3"><span class="d" style="background:var(--sage)"></span><h4>Comercial</h4><p>Qué negocios dominan — HITS (authorities).</p></div>
+    </div>
+    <p class="lead" data-step="4" style="max-width:52ch">Son tres rankings que casi no se cruzan: solo <em class="hl">4 de 15</em> nombres aparecen en común. Los que están en todos son los verdaderos pilares.</p>
+    <div data-step="4"><span class="pill">Pilares de Boise: <em>Ophelia, Amie, Michele, Heather</em></span></div>
+  </section>
+
+  <!-- 15 -->
+  <section class="scene" data-name="Cinco negocios">
+    <div class="eyebrow">Los negocios, por dentro</div>
+    <h2 data-step="0">Cinco tipos<br>de negocio.</h2>
+    <p class="lead" data-step="0" style="max-width:58ch">Al agruparlos por <em class="hl">cómo se comportan</em> —y no por lo que venden— aparecen cinco perfiles muy claros.</p>
+    <div class="cards">
+      <div class="card" data-step="1"><div class="ico">💎</div><h3>La joya de nicho</h3><div class="desc">Spas y tiendas chicas que todos aman por igual.</div><div class="met">4.82★ · n=600</div></div>
+      <div class="card" data-step="2"><div class="ico">⚔️</div><h3>El divisivo</h3><div class="desc">Talleres y servicios: amor u odio, nada en medio.</div><div class="met">la más polarizada · n=940</div></div>
+      <div class="card veteran" data-step="3"><div class="tag">✦ aquí vive Fork</div><div class="ico">👑</div><h3>El veterano</h3><div class="desc">Restaurantes consolidados, de los de siempre.</div><div class="met">55 reseñas · 10 años · n=683</div></div>
+      <div class="card" data-step="4"><div class="ico">🪦</div><h3>El cementerio</h3><div class="desc">Los que no llegaron a contarlo.</div><div class="met">0% abierto · n=331</div></div>
+      <div class="card" data-step="5"><div class="ico">🔥</div><h3>Los que luchan</h3><div class="desc">Veteranos en aprietos: un tercio ya cerró.</div><div class="met">68% abierto · n=387</div></div>
+    </div>
+    <div class="ficha" data-step="5"><span class="t">Cómo</span>K-Means++ a mano. Elegimos 5 grupos con el método del codo y la silueta, usando 10 señales de comportamiento.</div>
+  </section>
+
+  <!-- 16 -->
+  <section class="scene" data-name="El tropiezo">
+    <div class="eyebrow">Un tropiezo honesto</div>
+    <div class="row" style="align-items:stretch">
+      <div class="col" style="max-width:32ch">
+        <h2 data-step="0">El primer<br>resultado mentía.</h2>
+        <p class="lead" data-step="1">Al inicio los grupos salían sin sentido (la línea <em class="hl c">roja</em>). En vez de maquillarlo, buscamos la causa: sobraban las categorías de negocio.</p>
+        <p class="lead" data-step="2">Al quitarlas, todo encajó en <em class="hl s">cinco grupos limpios</em> (la línea verde).</p>
+        <p class="lead" data-step="3">Diagnosticar, no decorar: eso es minería de datos.</p>
+      </div>
+      <div class="col"><svg class="viz" id="svg-sil" viewBox="0 0 600 420" preserveAspectRatio="xMidYMid meet" style="height:min(50vh,420px)"></svg></div>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="scene" data-name="Las rarezas">
+    <div class="eyebrow">Las rarezas</div>
+    <div class="row" style="align-items:stretch">
+      <div class="col" style="max-width:32ch">
+        <h2 data-step="0">153 negocios<br>que no encajan.</h2>
+        <p class="lead" data-step="1">Un segundo método, DBSCAN, hace algo que K-Means no puede: apartar a los raros en vez de meterlos a la fuerza en un grupo.</p>
+        <p class="lead" data-step="2">Esos <em class="hl c">153 outliers</em> —caros, atípicos— son justo los que conviene mirar de cerca para la parte de ética.</p>
+      </div>
+      <div class="col"><svg class="viz" id="svg-outliers" viewBox="0 0 600 440" preserveAspectRatio="xMidYMid meet"></svg></div>
+    </div>
+    <div class="ficha" data-step="2"><span class="t">Cómo</span>DBSCAN a mano. El radio se eligió con un k-distance plot. Casi todo cae en una sola masa; lo demás son anomalías.</div>
+  </section>
+
+  <!-- 18 -->
+  <section class="scene" data-name="Atando cabos">
+    <div class="eyebrow">Atando cabos</div>
+    <h2 data-step="0">Una pista que<br>se repite.</h2>
+    <p class="lead" data-step="1" style="max-width:56ch"><em class="hl s">Fork</em> apareció como autoridad cuando analizamos la red, y otra vez como "veterano" cuando agrupamos los negocios. Dos caminos distintos llegando al mismo lugar.</p>
+    <p class="lead" data-step="2" style="max-width:56ch">Y el hallazgo de fondo: Boise no son cajas separadas, sino un <em class="hl">degradado</em> con unos pocos personajes que reconoces al toque.</p>
+  </section>
+
+  <!-- 19 -->
+  <section class="scene" data-name="El veredicto">
+    <div class="eyebrow">El veredicto</div>
+    <h2 data-step="0">Entonces, ¿quién<br>manda en Boise?</h2>
+    <div class="takes">
+      <div class="take" data-step="1"><span class="n">01</span><p>Los conectores, no los famosos. <em class="hl">George le gana a Trish.</em></p></div>
+      <div class="take" data-step="2"><span class="n">02</span><p>El poder tiene tres caras que casi no se solapan.</p></div>
+      <div class="take" data-step="3"><span class="n">03</span><p>El comercio es un degradado: joyas, veteranos y un cementerio.</p></div>
+    </div>
+    <div data-step="4"><span class="badge">◆ Todo a mano — PageRank · HITS · Louvain · K-Means++ · DBSCAN, sin librerías de ML</span></div>
+  </section>
+
+</main>
+
+<div class="hud"><div class="rail" id="rail"></div><div class="meta" id="meta"></div></div>
+<div class="hint" id="hint"><kbd>→</kbd> avanzar · <kbd>←</kbd> volver · <kbd>F</kbd> pantalla completa</div>
+
+<script>
+(function(){
+  "use strict";
+  const deck=document.getElementById('deck');
+  const scenes=Array.from(deck.querySelectorAll('.scene'));
+  const rail=document.getElementById('rail');
+  const meta=document.getElementById('meta');
+  const hint=document.getElementById('hint');
+  const NS='http://www.w3.org/2000/svg';
+  const eln=(n,a)=>{const x=document.createElementNS(NS,n);for(const k in a)x.setAttribute(k,a[k]);return x;};
+  const rng=s=>()=>{s=(s*1664525+1013904223)%4294967296;return s/4294967296;};
+
+  const maxStep=scenes.map(s=>{let m=0;s.querySelectorAll('[data-step]').forEach(e=>m=Math.max(m,+e.dataset.step));return m;});
+  let si=0,st=0; const drawn=new Set(); const liveReg={};
+
+  scenes.forEach((s,i)=>{const b=document.createElement('button');b.title=s.dataset.name;b.onclick=ev=>{ev.stopPropagation();go(i,0);};rail.appendChild(b);});
+
+  /* live-loop manager (idle animation) */
+  let rafId=null,liveFn=null;
+  function stopLive(){ if(rafId)cancelAnimationFrame(rafId); rafId=null; liveFn=null; }
+  function startLive(fn){ stopLive(); liveFn=fn; const loop=t=>{ if(liveFn){liveFn(t); rafId=requestAnimationFrame(loop);} }; rafId=requestAnimationFrame(loop); }
+
+  function applySteps(){
+    const s=scenes[si];
+    s.querySelectorAll('[data-step]').forEach(e=>e.classList.toggle('on',+e.dataset.step<=st));
+    s.querySelectorAll('.frow.on .fbar i').forEach(i=>i.style.width=i.style.getPropertyValue('--w'));
+    s.querySelectorAll('.rk.on .rb').forEach(b=>b.style.width=b.style.getPropertyValue('--w'));
+    if(!drawn.has(si)){ drawn.add(si); const fn=builders[s.dataset.name]; if(fn) fn(s,si); }
+    s.querySelectorAll('[data-step].on .count').forEach(runCount);
+    stepHooks(s.dataset.name);
+  }
+  function show(){
+    scenes.forEach((s,i)=>{s.classList.toggle('is-active',i===si);s.classList.toggle('is-past',i<si);});
+    Array.from(rail.children).forEach((b,i)=>{b.className='';if(i<si)b.classList.add('done');if(i===si)b.classList.add('now');});
+    meta.textContent=String(si+1).padStart(2,'0')+' / '+scenes.length+'  ·  '+scenes[si].dataset.name;
+    applySteps();
+    stopLive(); if(liveReg[si]) startLive(liveReg[si]);
+  }
+  function go(i,s){si=Math.max(0,Math.min(scenes.length-1,i));st=s==null?0:s;show();}
+  function next(){ if(st<maxStep[si]){st++;applySteps();} else if(si<scenes.length-1){si++;st=0;show();} hint.classList.add('gone'); }
+  function prev(){ if(st>0){st--;applySteps();} else if(si>0){si--;st=maxStep[si];show();} }
+
+  document.addEventListener('keydown',e=>{
+    if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+    else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();prev();}
+    else if(e.key==='f'||e.key==='F'){const d=document;(d.fullscreenElement?d.exitFullscreen():d.documentElement.requestFullscreen()).catch(()=>{});}
+    else if(e.key==='Home'){go(0,0);}
+  });
+  deck.addEventListener('click',e=>{ if(e.target.closest('button'))return; next(); });
+
+  function runCount(el){ if(el.dataset.done)return; el.dataset.done=1;
+    const target=+el.dataset.target,dur=1400,t0=performance.now();
+    (function tick(t){const p=Math.min(1,(t-t0)/dur);const e=1-Math.pow(1-p,3);
+      el.textContent=Math.round(target*e).toLocaleString('en-US');if(p<1)requestAnimationFrame(tick);})(t0); }
+
+  /* ===== builders ===== */
+  const builders={};
+
+  function networkScene(svgId, sceneIdx, seed, opts){
+    // construye nodos+aristas y registra una animación en reposo (deriva suave)
+    const svg=document.getElementById(svgId); const r=rng(seed);
+    const o=opts||{};
+    // fondo: aislados (solo escena "fabric")
+    if(o.isolated){ for(let i=0;i<200;i++){ const c=eln('circle',{cx:r()*600,cy:r()*460,r:1.3,fill:'#574d40',opacity:0});
+      svg.appendChild(c); setTimeout(()=>{c.style.transition='opacity .5s';c.setAttribute('opacity',.32);},150+i*4); } }
+    // construir grupos/nodos
+    const nodes=[],edges=[];
+    if(o.communities){
+      const cols=['#f0a93c','#e6604a','#9bb083','#cf9bd0','#7fb0c8','#d8a06a'];
+      const sizes=[15,12,11,11,8,7]; const leaders=['Greg','George','Andy','Ophelia','Ryan',''];
+      const cx=300,cy=230,R=145;
+      sizes.forEach((n,gi)=>{ const ga=(gi/6)*6.2832-1.0,gx=cx+Math.cos(ga)*R,gy=cy+Math.sin(ga)*R;
+        const start=nodes.length;
+        nodes.push({bx:gx,by:gy,ph:r()*6.28,lead:true,col:cols[gi],name:leaders[gi]});
+        for(let i=1;i<n;i++){const a=r()*6.28,rad=14+r()*44;nodes.push({bx:gx+Math.cos(a)*rad,by:gy+Math.sin(a)*rad,ph:r()*6.28,col:cols[gi]});}
+        for(let i=1;i<n;i++)edges.push([start,start+i,cols[gi]]);
+      });
+      for(let i=0;i<5;i++){ // puentes entre líderes
+        const li=[0,15,27,38,49][i], lj=[15,27,38,49,57][i];
+        if(nodes[li]&&nodes[lj])edges.push([li,lj,'rgba(236,226,208,.5)',true]); }
+    } else {
+      const cx=o.cx||360,cy=240;
+      for(let i=0;i<46;i++){const a=r()*6.28,rad=20+r()*150;
+        nodes.push({bx:cx+Math.cos(a)*rad*(.6+r()*.5),by:cy+Math.sin(a)*rad*(.6+r()*.5),ph:r()*6.28,col:'#f0a93c'});}
+      nodes.forEach((n,i)=>{const k=1+(r()*2|0);for(let j=0;j<k;j++){const t=r()*nodes.length|0;if(t!==i)edges.push([i,t,'rgba(240,169,60,.28)']);}});
+    }
+    // DOM aristas
+    const eEl=edges.map(e=>{const a=nodes[e[0]],b=nodes[e[1]];
+      const l=eln('line',{x1:a.bx,y1:a.by,x2:b.bx,y2:b.by,stroke:e[2],'stroke-width':e[3]?1:.7,opacity:0});
+      svg.appendChild(l);return l;});
+    // DOM nodos
+    const nEl=nodes.map((n,i)=>{const c=eln('circle',{cx:n.bx,cy:n.by,r:0,fill:n.col,opacity:.95});svg.appendChild(c);return c;});
+    // reveal escalonado
+    eEl.forEach((l,i)=>setTimeout(()=>{l.style.transition='opacity .5s';l.setAttribute('opacity',edges[i][3]?1:.28);},i*8));
+    nEl.forEach((c,i)=>setTimeout(()=>{c.style.transition='r .5s cubic-bezier(.2,1.6,.4,1)';c.setAttribute('r',nodes[i].lead?7:(o.communities?3+r()*2:2.4+r()*2.2));},120+i*14));
+    // etiquetas de líder
+    nodes.forEach((n,i)=>{ if(n.lead&&n.name){const t=eln('text',{x:n.bx,y:n.by-13,fill:'#ece2d0','font-size':11,'text-anchor':'middle','font-weight':700,opacity:0});t.textContent=n.name;svg.appendChild(t);n._t=t;
+      setTimeout(()=>{t.style.transition='opacity .5s';t.setAttribute('opacity',1);},900+i*10);} });
+    // animación en reposo
+    liveReg[sceneIdx]=(t)=>{ const A=o.communities?3:5;
+      for(let i=0;i<nodes.length;i++){const n=nodes[i];
+        n.x=n.bx+Math.sin(t*0.0006+n.ph)*A; n.y=n.by+Math.cos(t*0.0005+n.ph*1.3)*A;
+        nEl[i].setAttribute('cx',n.x.toFixed(1)); nEl[i].setAttribute('cy',n.y.toFixed(1));
+        if(n._t){n._t.setAttribute('x',n.x.toFixed(1));n._t.setAttribute('y',(n.y-13).toFixed(1));}}
+      for(let i=0;i<edges.length;i++){const a=nodes[edges[i][0]],b=nodes[edges[i][1]];
+        eEl[i].setAttribute('x1',(a.x||a.bx).toFixed(1));eEl[i].setAttribute('y1',(a.y||a.by).toFixed(1));
+        eEl[i].setAttribute('x2',(b.x||b.bx).toFixed(1));eEl[i].setAttribute('y2',(b.y||b.by).toFixed(1));}
+    };
+  }
+  builders['Quién conoce a quién']=(s,i)=>networkScene('svg-fabric',i,7,{isolated:true,cx:380});
+  builders['El núcleo']=(s,i)=>networkScene('svg-core',i,5,{cx:300});
+  builders['Las tribus']=(s,i)=>networkScene('svg-comm',i,23,{communities:true});
+
+  builders['Cómo califica la gente']=function(s,i){
+    const svg=document.getElementById('svg-jshape'); const data=[14,8,12,22,44]; // % aprox por estrella (forma J)
+    const x0=70,base=320,bw=70,gap=22,maxH=250;
+    data.forEach((v,k)=>{const h=maxH*v/44,x=x0+k*(bw+gap);
+      const rect=eln('rect',{x:x,y:base,width:bw,height:0,rx:5,fill:k>=3?'#f0a93c':'#7a6650'});svg.appendChild(rect);
+      const lb=eln('text',{x:x+bw/2,y:base+24,fill:'#b7ab96','font-size':13,'text-anchor':'middle'});lb.textContent=(k+1)+'★';svg.appendChild(lb);
+      setTimeout(()=>{rect.style.transition='height .9s cubic-bezier(.2,.7,.2,1),y .9s cubic-bezier(.2,.7,.2,1)';rect.setAttribute('height',h);rect.setAttribute('y',base-h);},150+k*100);});
+    const av=eln('text',{x:430,y:90,fill:'#ece2d0','font-size':15,'text-anchor':'middle'});av.textContent='prom. 3.80';svg.appendChild(av);
+  };
+
+  builders['La ley de los pocos']=function(s,i){
+    const svg=document.getElementById('svg-power'); const x0=70,x1=520,y0=320,y1=50;
+    svg.appendChild(eln('line',{x1:x0,y1:y0,x2:x1,y2:y0,stroke:'var(--line)'}));
+    svg.appendChild(eln('line',{x1:x0,y1:y0,x2:x0,y2:y1,stroke:'var(--line)'}));
+    let d='';for(let k=0;k<=100;k++){const x=x0+(x1-x0)*k/100;const v=Math.pow((k/100)+0.02,-1.3);const y=y0-(y0-y1)*Math.min(1,v/8);d+=(k?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)+' ';}
+    const p=eln('path',{d:d,fill:'none',stroke:'#e6604a','stroke-width':2.6});svg.appendChild(p);
+    const len=p.getTotalLength();p.style.strokeDasharray=len;p.style.strokeDashoffset=len;
+    setTimeout(()=>{p.style.transition='stroke-dashoffset 1.4s ease';p.style.strokeDashoffset=0;},200);
+    const t1=eln('text',{x:140,y:110,fill:'#f0a93c','font-size':13});t1.textContent='pocos hiperactivos';svg.appendChild(t1);
+    const t2=eln('text',{x:330,y:300,fill:'#8a7c67','font-size':13});t2.textContent='larga cola de casuales';svg.appendChild(t2);
+    const ax=eln('text',{x:(x0+x1)/2,y:360,fill:'#8a7c67','font-size':12,'text-anchor':'middle'});ax.textContent='usuarios ordenados por actividad →';svg.appendChild(ax);
+  };
+
+  builders['La sorpresa']=function(s,i){
+    const svg=document.getElementById('svg-scatter'); const r=rng(11);
+    const X0=70,X1=560,Y0=400,Y1=40;
+    const xs=v=>X0+(X1-X0)*Math.min(1,v/1200), ys=v=>Y0+(Y1-Y0)*Math.min(1,v/0.0075);
+    svg.appendChild(eln('line',{x1:X0,y1:Y0,x2:X1,y2:Y0,stroke:'var(--line)'}));
+    svg.appendChild(eln('line',{x1:X0,y1:Y0,x2:X0,y2:Y1,stroke:'var(--line)'}));
+    const lx=eln('text',{x:(X0+X1)/2,y:435,fill:'#8a7c67','font-size':12,'text-anchor':'middle'});lx.textContent='fans (popularidad) →';svg.appendChild(lx);
+    const ly=eln('text',{x:20,y:(Y0+Y1)/2,fill:'#8a7c67','font-size':12,'text-anchor':'middle',transform:'rotate(-90 20 '+((Y0+Y1)/2)+')'});ly.textContent='PageRank (centralidad) →';svg.appendChild(ly);
+    for(let k=0;k<260;k++){const f=Math.pow(r(),2.2)*900,p=Math.pow(r(),2)*0.0042+r()*0.0006;
+      const c=eln('circle',{cx:xs(f),cy:ys(p),r:2,fill:'#6a5d4c',opacity:0});svg.appendChild(c);
+      setTimeout(()=>{c.style.transition='opacity .5s';c.setAttribute('opacity',.5);},k*4);}
+    function pt(x,y,col,lab,sub){const g=eln('g',{opacity:0});
+      g.appendChild(eln('circle',{cx:x,cy:y,r:8,fill:col}));
+      const ring=eln('circle',{cx:x,cy:y,r:8,fill:'none',stroke:col,'stroke-width':1.5,opacity:.6});g.appendChild(ring);
+      const t=eln('text',{x:x+13,y:y-5,fill:'#ece2d0','font-size':14,'font-weight':700});t.textContent=lab;g.appendChild(t);
+      const t2=eln('text',{x:x+13,y:y+11,fill:'#8a7c67','font-size':10.5});t2.textContent=sub;g.appendChild(t2);
+      svg.appendChild(g);g.style.transition='opacity .55s';g._ring=ring;g._cx=x;g._cy=y;return g;}
+    window._pts={trish:pt(xs(1079),ys(0.001774),'#e6604a','Trish','1,079 fans · #14'),
+      george:pt(xs(2),ys(0.002116),'#f0a93c','George','2 fans · #12'),
+      ophelia:pt(xs(857),ys(0.006709),'#f0a93c','Ophelia','#1 en todo')};
+    liveReg[i]=(t)=>{ for(const k in window._pts){const g=window._pts[k];
+      const R=12+Math.sin(t*0.004+g._cx)*5; g._ring.setAttribute('r',R.toFixed(1));
+      g._ring.setAttribute('opacity',(0.5*(17-R)/10).toFixed(2));}};
+  };
+
+  builders['Los reyes restaurantes']=function(s,i){
+    const svg=document.getElementById('svg-podium');
+    const data=[['Fork',0.536,'#e6604a'],['Barbacoa',0.248,'#b6553f'],['Bittercreek',0.224,'#9a6a3c'],['Goldy\u2019s',0.217,'#8a6a4a'],['Big City',0.149,'#f0a93c'],['Boise Fry',0.143,'#7a6650']];
+    const W=76,gap=14,base=350,maxH=290,x0=58;
+    data.forEach((d,k)=>{const h=maxH*d[1]/0.55,x=x0+k*(W+gap);
+      const bar=eln('rect',{x:x,y:base,width:W,height:0,rx:5,fill:d[2],opacity:.92});svg.appendChild(bar);
+      const nm=eln('text',{x:x+W/2,y:base+22,fill:'#b7ab96','font-size':11.5,'text-anchor':'middle'});nm.textContent=d[0];svg.appendChild(nm);
+      const vl=eln('text',{x:x+W/2,y:base-h-10,fill:'#ece2d0','font-size':12,'text-anchor':'middle',opacity:0});vl.textContent=d[1].toFixed(2);svg.appendChild(vl);
+      setTimeout(()=>{bar.style.transition='height .9s cubic-bezier(.2,.7,.2,1),y .9s cubic-bezier(.2,.7,.2,1)';bar.setAttribute('height',h);bar.setAttribute('y',base-h);setTimeout(()=>{vl.style.transition='opacity .5s';vl.setAttribute('opacity',1);},700);},150+k*110);});
+    const crown=eln('text',{x:x0+W/2,y:base-maxH*0.536/0.55-26,fill:'#f0a93c','font-size':24,'text-anchor':'middle',id:'crown',opacity:0});crown.textContent='\u265B';svg.appendChild(crown);
+  };
+
+  builders['El tropiezo']=function(s,i){
+    const svg=document.getElementById('svg-sil');const X0=70,X1=540,Y0=340,Y1=40;
+    const xs=k=>X0+(X1-X0)*(k-2)/8,ys=v=>Y0+(Y1-Y0)*(v-0.10)/0.10;
+    svg.appendChild(eln('line',{x1:X0,y1:Y0,x2:X1,y2:Y0,stroke:'var(--line)'}));
+    svg.appendChild(eln('line',{x1:X0,y1:Y0,x2:X0,y2:Y1,stroke:'var(--line)'}));
+    svg.appendChild((()=>{const t=eln('text',{x:(X0+X1)/2,y:380,fill:'#8a7c67','font-size':12,'text-anchor':'middle'});t.textContent='nº de grupos (k)';return t;})());
+    const broken=[0.142,0.146,0.130,0.135,0.124,0.121,0.152,0.160,0.179];
+    const fixed=[0.153,0.159,0.174,0.183,0.172,0.174,0.173,0.159,0.178];
+    const poly=(arr,col)=>{let d='';arr.forEach((v,k)=>d+=(k?'L':'M')+xs(k+2)+' '+ys(v)+' ');
+      const p=eln('path',{d:d,fill:'none',stroke:col,'stroke-width':2.5});svg.appendChild(p);
+      const L=p.getTotalLength();p.style.strokeDasharray=L;p.style.strokeDashoffset=L;return p;};
+    const mk=()=>{const g=eln('g',{opacity:0});g.appendChild(eln('circle',{cx:xs(5),cy:ys(0.183),r:6,fill:'none',stroke:'#9bb083','stroke-width':2}));
+      const t=eln('text',{x:xs(5),y:ys(0.183)-13,fill:'#9bb083','font-size':12,'text-anchor':'middle'});t.textContent='k=5';g.appendChild(t);svg.appendChild(g);return g;};
+    window._sil={broken:poly(broken,'#e6604a'),fixed:poly(fixed,'#9bb083'),mark:mk()};
+  };
+
+  builders['Las rarezas']=function(s,i){
+    const svg=document.getElementById('svg-outliers');const r=rng(31);
+    // masa central
+    for(let k=0;k<320;k++){const a=r()*6.28,rad=Math.pow(r(),0.6)*150;
+      const c=eln('circle',{cx:300+Math.cos(a)*rad*1.4,cy:220+Math.sin(a)*rad,r:2.2,fill:'#5f8aa8',opacity:0});svg.appendChild(c);
+      setTimeout(()=>{c.style.transition='opacity .4s';c.setAttribute('opacity',.45);},k*2);}
+    // outliers (coral) dispersos
+    const outs=[];
+    for(let k=0;k<26;k++){const a=r()*6.28,rad=210+r()*180;
+      const x=300+Math.cos(a)*rad,y=220+Math.sin(a)*rad*0.7;
+      const c=eln('circle',{cx:Math.max(20,Math.min(580,x)),cy:Math.max(20,Math.min(420,y)),r:0,fill:'#e6604a'});svg.appendChild(c);outs.push(c);}
+    window._outs=outs;
+    const lbl=eln('text',{x:300,y:430,fill:'#e6604a','font-size':13,'text-anchor':'middle',opacity:0,id:'outlbl'});lbl.textContent='153 outliers · 5.2%';svg.appendChild(lbl);
+  };
+
+  function stepHooks(name){
+    if(name==='La sorpresa'&&window._pts){const{trish,george,ophelia}=window._pts;
+      trish.setAttribute('opacity',st>=1?1:0);george.setAttribute('opacity',st>=2?1:0);ophelia.setAttribute('opacity',st>=4?1:0);}
+    if(name==='Los reyes restaurantes'){const c=document.getElementById('crown');if(c){c.style.transition='opacity .5s';c.setAttribute('opacity',st>=1?1:0);}}
+    if(name==='El tropiezo'&&window._sil){const{broken,fixed,mark}=window._sil;
+      const draw=p=>{p.style.transition='stroke-dashoffset 1s ease';p.style.strokeDashoffset=0;};
+      const hide=p=>p.style.strokeDashoffset=p.getTotalLength();
+      if(st>=1)draw(broken);else hide(broken);
+      if(st>=2){draw(fixed);mark.style.transition='opacity .5s';mark.setAttribute('opacity',1);}else{hide(fixed);mark.setAttribute('opacity',0);}
+      broken.setAttribute('opacity',st>=2?0.4:1);}
+    if(name==='Las rarezas'&&window._outs){window._outs.forEach((c,k)=>{c.style.transition='r .5s cubic-bezier(.2,1.6,.4,1)';c.setAttribute('r',st>=2?3.4:0);});
+      const l=document.getElementById('outlbl');if(l){l.style.transition='opacity .5s';l.setAttribute('opacity',st>=2?1:0);}}
+  }
+
+  /* constelación de fondo */
+  (function(){const cv=document.getElementById('sky');const cx=cv.getContext('2d');
+    if(window.matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+    let W,H,pts;function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight;
+      pts=Array.from({length:Math.min(85,W/16|0)},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.12,vy:(Math.random()-.5)*.12}));}
+    rs();addEventListener('resize',rs);
+    (function loop(){cx.clearRect(0,0,W,H);
+      for(const p of pts){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;
+        cx.beginPath();cx.arc(p.x,p.y,1,0,6.28);cx.fillStyle='rgba(240,169,60,.26)';cx.fill();}
+      for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const a=pts[i],b=pts[j],dx=a.x-b.x,dy=a.y-b.y,d=dx*dx+dy*dy;
+        if(d<11000){cx.beginPath();cx.moveTo(a.x,a.y);cx.lineTo(b.x,b.y);cx.strokeStyle='rgba(236,226,208,'+(0.05*(1-d/11000))+')';cx.lineWidth=.5;cx.stroke();}}
+      requestAnimationFrame(loop);})();
+  })();
+
+  show();
+})();
+</script>
+</body>
+</html>
